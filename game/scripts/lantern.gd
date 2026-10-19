@@ -21,7 +21,12 @@ func on_pushed(_direction: Vector2) -> void:
 
 
 func _draw() -> void:
+	# Светящийся бутон на тонком стебле, свисающем сверху.
 	var pulse := 0.5 + 0.5 * sin(_time * 2.0)
-	for i in range(3, 0, -1):
-		draw_circle(Vector2.ZERO, 8.0 + i * 6.0, Color(0.96, 0.9, 0.66, 0.06 + 0.04 * pulse + 0.1 * _flash))
-	draw_circle(Vector2.ZERO, 6.0, Color("F5E6A8"))
+	draw_line(Vector2(0, -60), Vector2(sin(_time) * 1.5, -9), Color("17313D"), 2.0, true)
+	Fx.glow(self, Vector2.ZERO, 46.0 + 6.0 * pulse + 30.0 * _flash, Color(0.6, 0.95, 1.0, 0.35 + 0.3 * _flash))
+	Fx.glow(self, Vector2.ZERO, 16.0, Color(0.85, 1.0, 1.0, 0.9))
+	for i in 3:
+		var a := -PI * 0.5 + (i - 1) * 0.7
+		draw_colored_polygon(Fx.teardrop(Vector2.ZERO, Vector2(cos(a), sin(a)) * 11.0, 3.5), Color("2C6E78"))
+	draw_circle(Vector2(0, 1), 4.5, Color("E8FFFF"))

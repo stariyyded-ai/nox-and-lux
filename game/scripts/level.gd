@@ -51,6 +51,9 @@ var _hud: Label
 
 func _ready() -> void:
 	InputSetup.ensure()
+	var bg := ForestBackground.new()
+	bg.level_size = Vector2(MAP[0].length(), MAP.size()) * TILE
+	add_child(bg)
 	_build_map()
 	_build_hud()
 
@@ -100,7 +103,8 @@ func _build_map() -> void:
 		var label := Label.new()
 		label.text = hint[1]
 		label.position = Vector2(hint[0]) * TILE
-		label.add_theme_color_override("font_color", Color(0.85, 0.82, 0.95, 0.85))
+		label.add_theme_color_override("font_color", Color(0.86, 0.96, 0.95, 0.9))
+		label.add_theme_color_override("font_shadow_color", Color(0.02, 0.08, 0.12, 0.8))
 		label.add_theme_font_size_override("font_size", 13)
 		add_child(label)
 	queue_redraw()
@@ -162,19 +166,43 @@ func _build_hud() -> void:
 	layer.add_child(_hud)
 
 
+func _is_solid(x: int, y: int) -> bool:
+	if y < 0 or y >= MAP.size() or x < 0 or x >= MAP[y].length():
+		return true
+	return MAP[y][x] == "#"
+
+
 func _draw() -> void:
+	# Земля — тёмные силуэты переднего плана, сверху мох и травинки, как в Ori.
 	for rect in _solid_rects:
-		draw_rect(rect, Color("3A3550"))
-		draw_rect(Rect2(rect.position, Vector2(rect.size.x, 3)), Color("5B5F6B"))
+		draw_rect(rect, Color("0C1A24"))
+	for y in MAP.size():
+		for x in MAP[y].length():
+			if not _is_solid(x, y):
+				continue
+			var pos := Vector2(x * TILE, y * TILE)
+			if not _is_solid(x - 1, y):
+				draw_rect(Rect2(pos, Vector2(3, TILE)), Color("17313D"))
+			if not _is_solid(x + 1, y):
+				draw_rect(Rect2(pos + Vector2(TILE - 3, 0), Vector2(3, TILE)), Color("17313D"))
+			if not _is_solid(x, y - 1):
+				draw_rect(Rect2(pos, Vector2(TILE, 7)), Color("173A40"))
+				draw_line(pos, pos + Vector2(TILE, 0), Color("5FBF98"), 3.0)
+				for k in 5:
+					var h := 3.0 + float((x * 7 + k * 13 + y * 3) % 6)
+					var gx := pos.x + 3 + k * 6.5
+					draw_line(Vector2(gx, pos.y), Vector2(gx + 1.5, pos.y - h), Color("4FA88A"), 1.5, true)
 	for rect in _spike_rects:
-		for i in 2:
-			var x0 := rect.position.x + i * TILE / 2.0
+		Fx.glow(self, rect.get_center() + Vector2(0, 8), 26.0, Color(0.85, 0.2, 0.35, 0.25))
+		for i in 3:
+			var x0 := rect.position.x + i * TILE / 3.0
 			var base := rect.end.y
 			draw_colored_polygon(PackedVector2Array([
-				Vector2(x0, base), Vector2(x0 + TILE / 4.0, rect.position.y + 6), Vector2(x0 + TILE / 2.0, base)
-			]), Color("7A1E2C"))
-	var goal_rows := MAP.size()
-	for y in goal_rows:
+				Vector2(x0, base), Vector2(x0 + TILE / 6.0 + 2, rect.position.y + 4 + i % 2 * 5), Vector2(x0 + TILE / 3.0, base)
+			]), Color("2A0F22"))
+	for y in MAP.size():
 		var x: int = MAP[y].find("G")
 		if x >= 0:
-			draw_circle(Vector2(x * TILE + TILE / 2.0, y * TILE + TILE / 2.0), 12.0, Color("A8D672"))
+			var c := Vector2(x * TILE + TILE / 2.0, y * TILE + TILE / 2.0)
+			Fx.glow(self, c, 70.0, Color(0.75, 1.0, 0.7, 0.5))
+			Fx.glow(self, c, 20.0, Color(0.95, 1.0, 0.9, 1.0))
