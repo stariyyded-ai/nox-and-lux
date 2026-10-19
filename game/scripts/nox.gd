@@ -37,6 +37,7 @@ signal respawned
 var lux: Node2D
 var spawn_point := Vector2.ZERO
 var facing := 1
+var wall_side := 0  ## -1/1, когда Нокс прижался к стене слева/справа; нужно для анимации
 
 var _coyote := 0.0
 var _buffer := 0.0
@@ -61,6 +62,7 @@ func _ready() -> void:
 	cam.position_smoothing_speed = 6.0
 	cam.zoom = Vector2(1.25, 1.25)
 	add_child(cam)
+	add_child(NoxVisual.new())
 
 
 func _physics_process(delta: float) -> void:
@@ -82,6 +84,7 @@ func _physics_process(delta: float) -> void:
 	var on_wall := is_on_wall_only()
 	var wall_normal := get_wall_normal() if on_wall else Vector2.ZERO
 	var holding_wall := on_wall and dir != 0.0 and signf(dir) == -signf(wall_normal.x)
+	wall_side = int(-signf(wall_normal.x)) if holding_wall else 0
 
 	if is_on_floor() or holding_wall:
 		_recharge_lux()
@@ -196,17 +199,9 @@ func respawn() -> void:
 	respawned.emit()
 
 
-# --- Временная графика: серый прототип -------------------------------------------
+# --- Линия прицела Толчка света (самого Нокса рисует NoxVisual) ------------------
 
 func _draw() -> void:
-	# Тело баку: тёмно-фиолетовый круглый силуэт.
-	draw_circle(Vector2(0, 4), 15.0, Color("2B2440"))
-	draw_circle(Vector2(0, -8), 11.0, Color("4A3F6B"))
-	# Хоботок смотрит туда, куда повёрнут Нокс.
-	draw_line(Vector2(8 * facing, -6), Vector2(16 * facing, -2), Color("8E7CC3"), 3.0)
-	# Обломок маски и глаз.
-	draw_arc(Vector2(2 * facing, -10), 7.0, PI * 0.6, PI * 1.6, 8, Color("E9E4F5"), 2.0)
-	draw_circle(Vector2(4 * facing, -10), 2.0, Color("F2C14E"))
 	if _aiming and is_instance_valid(_push_target):
 		var from := _push_target.global_position - global_position
 		draw_line(from, from + _aim * 70.0, Color("F7D774"), 3.0)
