@@ -1,6 +1,6 @@
 class_name Nox
 extends CharacterBody2D
-## Нокс — управляемый герой. Прототип движения: бег, прыжок, стены и Толчок света.
+## Нокс — управляемый герой. Прототип движения: бег, прыжок, прыжки по стенам и Толчок света.
 ## Все числа вынесены в @export, чтобы подбирать ощущение прямо в инспекторе Godot.
 
 signal respawned
@@ -22,9 +22,10 @@ signal respawned
 
 @export_group("Стены")
 @export var wall_slide_speed := 110.0
-@export var climb_speed := 150.0
-@export var wall_jump_push := 320.0
+@export var wall_jump_push := 320.0  ## отскок от стены, если не держать направление к ней
 @export var wall_jump_lock := 0.16  ## время, когда управление по горизонтали не перебивает отскок
+@export var wall_climb_push := 140.0  ## прыжок вверх по стене, если держать направление к ней
+@export var wall_climb_lock := 0.06
 
 @export_group("Толчок света")
 @export var push_radius := 120.0
@@ -94,10 +95,16 @@ func _physics_process(delta: float) -> void:
 			_buffer = 0.0
 			_coyote = 0.0
 		elif on_wall:
+			# Как в Ori: если держать направление к стене, Нокс прыгает вверх вдоль неё
+			# и сразу возвращается, так стену можно быстро «пропрыгать». Иначе — отскок.
 			velocity.y = jump_velocity * 0.95
-			velocity.x = wall_normal.x * wall_jump_push
-			facing = int(signf(wall_normal.x))
-			_control_lock = wall_jump_lock
+			if holding_wall:
+				velocity.x = wall_normal.x * wall_climb_push
+				_control_lock = wall_climb_lock
+			else:
+				velocity.x = wall_normal.x * wall_jump_push
+				facing = int(signf(wall_normal.x))
+				_control_lock = wall_jump_lock
 			_buffer = 0.0
 	if Input.is_action_just_released("jump") and velocity.y < 0.0:
 		velocity.y *= jump_cut
@@ -119,12 +126,8 @@ func _apply_horizontal(dir: float, delta: float) -> void:
 
 
 func _apply_vertical(holding_wall: bool, delta: float) -> void:
-	if holding_wall:
-		var climb := Input.get_axis("move_up", "move_down")
-		if climb != 0.0:
-			velocity.y = climb * climb_speed
-		else:
-			velocity.y = minf(velocity.y + gravity * delta, wall_slide_speed)
+	if holding_wall and velocity.y > 0.0:
+		velocity.y = minf(velocity.y + gravity * delta, wall_slide_speed)
 		return
 	var g := gravity * (fall_gravity_mult if velocity.y > 0.0 else 1.0)
 	velocity.y = minf(velocity.y + g * delta, max_fall_speed)
